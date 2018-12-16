@@ -4,6 +4,9 @@ import Burger from '../../components/Burger/Burger';
 import BuildControls from '../../components/Burger/BuildControls/BuildControls';
 import Modal from '../../components/UI/Modal/Modal';
 import OrderSummary from '../../components/Burger/OrderSummary/OrderSummary';
+import Spinner from '../../components/UI/Spinner/Spinner';
+
+import axios from '../../axios-orders-instance';
 
 //global prices to use for calculations
 const INGREDIENT_PRICES = {
@@ -30,7 +33,8 @@ class BurgerBuilder extends Component {
         },
         totalPrice: 5, //base price
         purchaseable: false, //for enabling/disabling the order now button
-        purchasing: false //for determining if we are in the modal or not
+        purchasing: false, //for determining if we are in the modal or not
+        loading: false //for checking whether or not to show the spinner
     }
 
     updatePurchaseableState = (updatedIngredients) => {
@@ -65,8 +69,55 @@ class BurgerBuilder extends Component {
         })
     }
 
+    //here's where we hit the firebase instance
     purchaseContinueHandler = () => {
-        alert('You Continued!');
+       // alert('You Continued!');
+
+       //first set loading to true
+
+       this.setState({
+           loading : true
+       })
+
+
+       //this is a firebase specific thing for real time database
+       // firbase realtime database creates nodes with data based
+       // on this request
+       // you target the base URL node with a .json extension
+       //it will store data beneath that node
+
+       const order = {
+           ingredients: this.state.ingredients,
+           price: this.state.totalPrice, //recalc the price on the server in a real app
+           customer: {
+               name: 'Dan Sacharow',
+               address : {
+                   street: '123 test street',
+                   city: 'test city',
+                   zip: '123456',
+                   country: 'US'
+               },
+               email: "test@test.com"
+           },
+           deilveryMethod: 'fastest'
+       }
+
+       axios.post('/orders.json', order )
+        .then((response) =>{
+            //when you get the response, set loading to false to hide spinner
+            // and also set purchasing to false to have the modal leave
+            this.setState({
+                loading: false,
+                purchasing: false
+            })
+            console.log(response);
+        }).catch((error) => {
+            this.setState({
+                loading: false,
+                purchasing: false
+            })
+        })
+
     }
 
     addIngredientHandler = (type) => {
@@ -149,18 +200,25 @@ render(){ //required lifecycle method
         disabledButtonInfo[key] =  disabledButtonInfo[key] <= 0
     }
 
+    //here we have a check for loading state, replacing the order summary with a spinner
+
+    let orderSummary = <OrderSummary  
+        ingredients={this.state.ingredients}
+        price={this.state.totalPrice}
+        cancel={this.purchaseCancelHandler}
+        continue={this.purchaseContinueHandler}
+     />
+
+     if (this.state.loading) {
+         orderSummary = <Spinner />
+     }
 
     return(
         <Aux>
             <Modal 
                 show={this.state.purchasing} 
                 modalClosed={this.purchaseCancelHandler}>
-                <OrderSummary  
-                    ingredients={this.state.ingredients}
-                    price={this.state.totalPrice}
-                    cancel={this.purchaseCancelHandler}
-                    continue={this.purchaseContinueHandler}
-                 />
+                {orderSummary}
             </Modal>
             <Burger 
                 ingredients={this.state.ingredients}
