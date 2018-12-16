@@ -2,9 +2,10 @@ import React, {Component} from 'react';
 import Aux from '../../hoc/Aux';
 import Burger from '../../components/Burger/Burger';
 import BuildControls from '../../components/Burger/BuildControls/BuildControls';
-import { throws } from 'assert';
+import Modal from '../../components/UI/Modal/Modal';
+import OrderSummary from '../../components/Burger/OrderSummary/OrderSummary';
 
-
+//global prices to use for calculations
 const INGREDIENT_PRICES = {
     salad : 0.2,
     cheese: 0.3,
@@ -27,7 +28,45 @@ class BurgerBuilder extends Component {
             cheese: 0,
             meat: 0
         },
-        totalPrice: 5 //base price
+        totalPrice: 5, //base price
+        purchaseable: false, //for enabling/disabling the order now button
+        purchasing: false //for determining if we are in the modal or not
+    }
+
+    updatePurchaseableState = (updatedIngredients) => {
+        // const ingredients = {
+        //     ...this.state.ingredients
+        // };
+        
+        //take the key and return the value in a new array,
+        //which we then reduce to get the s
+        const sum = Object.keys(updatedIngredients)
+            .map((ingredientKey)=>{
+                return updatedIngredients[ingredientKey]
+            })
+            .reduce((sum, el) =>{
+                return sum + el
+            }, 0);
+
+        this.setState({purchaseable: sum > 0});
+
+
+    }
+
+    purchasingHandler = () =>{
+        this.setState({
+            purchasing: true
+        })
+    }
+
+    purchaseCancelHandler = () => {
+        this.setState({
+            purchasing: false
+        })
+    }
+
+    purchaseContinueHandler = () => {
+        alert('You Continued!');
     }
 
     addIngredientHandler = (type) => {
@@ -54,6 +93,7 @@ class BurgerBuilder extends Component {
             totalPrice : newPrice
         });
 
+        this.updatePurchaseableState(updatedIngredients);
 
     }
 
@@ -92,13 +132,15 @@ class BurgerBuilder extends Component {
             totalPrice : newPrice
         });
 
+        this.updatePurchaseableState(updatedIngredients);
+
     }
 
 render(){ //required lifecycle method
 
-    //let's add a check here to disable a button if there 
-    //are no ingredients to take away
-
+    //let's add a check here to disable the "LESS" button  of a given Build Control
+    //if there are no ingredients to take away
+    
     const disabledButtonInfo = {
         ...this.state.ingredients
     }
@@ -110,6 +152,16 @@ render(){ //required lifecycle method
 
     return(
         <Aux>
+            <Modal 
+                show={this.state.purchasing} 
+                modalClosed={this.purchaseCancelHandler}>
+                <OrderSummary  
+                    ingredients={this.state.ingredients}
+                    price={this.state.totalPrice}
+                    cancel={this.purchaseCancelHandler}
+                    continue={this.purchaseContinueHandler}
+                 />
+            </Modal>
             <Burger 
                 ingredients={this.state.ingredients}
             />
@@ -118,8 +170,10 @@ render(){ //required lifecycle method
                 ingredientRemoved={this.removeIngredientHandler}
                 disabled={disabledButtonInfo}
                 price={this.state.totalPrice}
+                purchaseable={!this.state.purchaseable}
+                ordered={this.purchasingHandler}
             />
-            <div>Purchase Button</div>
+
         </Aux>
     )
     }

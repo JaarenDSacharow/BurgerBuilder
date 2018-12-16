@@ -19,6 +19,7 @@ const Burger = (props) => {
             //spread operator creates a new array based on the current key
             return[...Array(props.ingredients[ingredientKey])] 
                 //and finally we map that array with a blank arg and index
+                //and render BurgerIngredient components in a list
                 .map((_, index) => {
                     return <BurgerIngredient key={ingredientKey + index} type={ingredientKey}/>
                 })
@@ -39,11 +40,11 @@ const Burger = (props) => {
 
     return(
         <Aux>
-        <div className="Burger">
-            <BurgerIngredient type="bread-top"/>
-                {transFormedIngredients}
-            <BurgerIngredient type="bread-bottom"/>
-        </div>
+            <div className="Burger">
+                <BurgerIngredient type="bread-top"/>
+                    {transFormedIngredients}
+                <BurgerIngredient type="bread-bottom"/>
+            </div>
         </Aux>
     );
 }
