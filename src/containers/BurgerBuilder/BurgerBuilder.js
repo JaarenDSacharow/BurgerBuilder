@@ -1,11 +1,16 @@
 import React, {Component} from 'react';
-import Aux from '../../hoc/Aux';
+import Aux from '../../hoc/Aux/Aux';
 import Burger from '../../components/Burger/Burger';
 import BuildControls from '../../components/Burger/BuildControls/BuildControls';
 import Modal from '../../components/UI/Modal/Modal';
 import OrderSummary from '../../components/Burger/OrderSummary/OrderSummary';
 import Spinner from '../../components/UI/Spinner/Spinner';
 
+//HOC to wrap this
+
+import withErrorHandler from '../../hoc/WithErrorHandler/WithErrorHandler';
+
+// our own axios instance
 import axios from '../../axios-orders-instance';
 
 //global prices to use for calculations
@@ -25,16 +30,25 @@ class BurgerBuilder extends Component {
     // }
 
     state = {
-        ingredients: {
-            salad: 0,
-            bacon: 0,
-            cheese: 0,
-            meat: 0
-        },
+        ingredients: null, //<-- this is stored in firebase
         totalPrice: 5, //base price
         purchaseable: false, //for enabling/disabling the order now button
         purchasing: false, //for determining if we are in the modal or not
-        loading: false //for checking whether or not to show the spinner
+        loading: false, //for checking whether or not to show the spinner
+        error: false // in case the ingredients can't be loaded, we can get rid of the spinner.
+    }
+
+    componentDidMount(){
+        axios.get('/ingredients.json') //<-- it's firebase, don't forget the JSON extension or you'll get a CORS error
+            .then((response) =>{
+                this.setState({
+                    ingredients: response.data
+                })
+            }).catch((error)=>{
+                this.setState({
+                    error: true //this is the last line of defense to display an error to the user
+                })
+            })
     }
 
     updatePurchaseableState = (updatedIngredients) => {
@@ -78,7 +92,6 @@ class BurgerBuilder extends Component {
        this.setState({
            loading : true
        })
-
 
        //this is a firebase specific thing for real time database
        // firbase realtime database creates nodes with data based
@@ -201,28 +214,33 @@ render(){ //required lifecycle method
     }
 
     //here we have a check for loading state, replacing the order summary with a spinner
+    // but now that we're retriving ingredients from firebase, we need to also check for
+    //this.state.ingredients
+    let orderSummary = null;
 
-    let orderSummary = <OrderSummary  
-        ingredients={this.state.ingredients}
-        price={this.state.totalPrice}
-        cancel={this.purchaseCancelHandler}
-        continue={this.purchaseContinueHandler}
+    if(this.state.ingredients){
+        orderSummary = <OrderSummary  
+            ingredients={this.state.ingredients}
+            price={this.state.totalPrice}
+            cancel={this.purchaseCancelHandler}
+            continue={this.purchaseContinueHandler}
      />
-
+    }
      if (this.state.loading) {
          orderSummary = <Spinner />
      }
 
-    return(
-        <Aux>
-            <Modal 
-                show={this.state.purchasing} 
-                modalClosed={this.purchaseCancelHandler}>
-                {orderSummary}
-            </Modal>
-            <Burger 
-                ingredients={this.state.ingredients}
-            />
+     //here we check to see if the burger's ingredients have been populated into state
+     //if not, show a spinner.
+     // if you don't have these checks, the app will break because the state isn't
+     //ready yet, as it relies on an external call
+
+     let burger = !this.state.error ? <Spinner /> : <p>Ingredients can't be loaded</p>
+
+     if(this.state.ingredients){
+        burger = 
+            <Aux>
+            <Burger ingredients={this.state.ingredients} />
             <BuildControls
                 ingredientAdded={this.addIngredientHandler}
                 ingredientRemoved={this.removeIngredientHandler}
@@ -231,10 +249,24 @@ render(){ //required lifecycle method
                 purchaseable={!this.state.purchaseable}
                 ordered={this.purchasingHandler}
             />
+        </Aux>
+     }
 
+ 
+    return(
+        <Aux>
+            <Modal 
+                show={this.state.purchasing} 
+                modalClosed={this.purchaseCancelHandler}>
+                {orderSummary}
+            </Modal>
+          {burger}
         </Aux>
     )
     }
 }
 
-export default BurgerBuilder;
+//wrap this component with the HOC to display a global error modal
+
+
+export default withErrorHandler(BurgerBuilder, axios);
