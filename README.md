@@ -2,7 +2,7 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 It is a responsive application design to simulate the purchase of a custom hamburger.
 
-It utilizes a firebase Realtie database backend.
+It utilizes a firebase Realtime database backend.
 
 
 ## Available Scripts
